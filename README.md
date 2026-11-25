@@ -191,6 +191,13 @@ For Streamlit Community Cloud, store secrets in the app's **Settings → Secrets
 
 The deployed app must not depend on files stored only on a local computer. Keep the required dataset and model artifacts in the repository (or configure an appropriate external storage solution) and use repository-relative paths.
 
+## 🚀 Live Demo
+
+The application is deployed on Streamlit Community Cloud.
+
+[Open Customer Churn Prediction & Retention Advisor](https://wac-customer-churn-apputmsourcechatgptcom-xjqfxgx9gzt7bbvt87in.streamlit.app/)
+
+
 ## Benchmark results
 
 One local run of the Trainer dataset produced the following results:
