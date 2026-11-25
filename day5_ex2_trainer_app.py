@@ -37,34 +37,84 @@ def load_artifacts():
     return model, columns, importance
 
 
+
 def generate_retention_advice(city, contract, tenure, bill, calls, prob):
-    """Generate executive retention actions using Gemini 2.5 Flash or local rule engine."""
+
+    # 1. Get API key from environment or Streamlit Secrets
     api_key = os.environ.get("GEMINI_API_KEY")
+
+    if not api_key:
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY")
+        except Exception:
+            api_key = None
+
+    # 2. Try Gemini API
     if api_key:
         try:
             from google import genai
-            client = genai.Client()
+
+            client = genai.Client(api_key=api_key)
+
             prompt = (
-                f"You are a telecom retention strategist. Customer details: city={city}, "
-                f"contract={contract}, tenure={tenure} months, bill=${bill}, support_calls={calls}, "
-                f"predicted_churn_probability={prob:.1%}. Write 3 short actionable retention steps."
+                "You are a telecom retention strategist. "
+                f"Customer details: city={city}, "
+                f"contract={contract}, tenure={tenure} months, "
+                f"bill=${bill}, support_calls={calls}, "
+                f"predicted_churn_probability={prob:.1%}. "
+                "Write exactly 3 short, practical and actionable "
+                "retention steps for this customer. "
+                "Do not invent customer information."
             )
-            resp = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-            return resp.text
-        except Exception:
-            pass
 
+            response = client.models.generate_content(
+                model="gemini-3.5-flash-lite",
+                contents=prompt
+            )
+
+            if response.text:
+                return (
+                    "🤖 Gemini AI Recommendations:\n\n"
+                    + response.text
+                )
+
+        except Exception as exc:
+            st.warning(
+                f"Gemini unavailable ({type(exc).__name__}). "
+                "Using offline recommendations instead."
+            )
+
+    # 3. Offline fallback
     actions = []
-    if calls >= 3:
-        actions.append("- **Priority Technical Support:** Assign a senior technician within 24 hours to resolve repeated complaints.")
-    if contract == "Monthly":
-        actions.append("- **Annual Contract Incentive:** Offer a 15% discount for 3 months upon upgrading to an Annual plan.")
-    if tenure < 6:
-        actions.append("- **New Customer Check-In:** Schedule a customer success follow-up call during the first 6 months.")
-    if not actions:
-        actions.append("- **Loyalty Bonus:** Provide a complimentary 10GB data bundle to reinforce retention.")
-    return "\n".join(actions)
 
+    if calls >= 3:
+        actions.append(
+            "- **Priority Technical Support:** "
+            "Assign a senior technician within 24 hours."
+        )
+
+    if contract == "Monthly":
+        actions.append(
+            "- **Annual Contract Incentive:** "
+            "Offer a discount for upgrading to an Annual plan."
+        )
+
+    if tenure < 6:
+        actions.append(
+            "- **New Customer Check-In:** "
+            "Schedule a customer follow-up call."
+        )
+
+    if not actions:
+        actions.append(
+            "- **Loyalty Bonus:** "
+            "Provide a complimentary 10GB data bundle."
+        )
+
+    return (
+        "⚙️ Offline Retention Recommendations:\n\n"
+        + "\n".join(actions)
+    )
 
 if not os.path.exists("customer_churn.csv") or not os.path.exists("models/churn_model.pkl"):
     st.error("Run `python day5_ex1_train_and_save.py` first to generate `models/churn_model.pkl`.")
